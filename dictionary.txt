@@ -1,0 +1,149 @@
+# WinFuzz Enhanced Dictionary File
+# This file contains interesting values for Windows fuzzing
+# Lines starting with # are comments
+
+# Common Windows paths
+C:\Windows\System32\
+C:\Windows\SysWOW64\
+C:\Program Files\
+C:\Program Files (x86)\
+C:\Users\
+C:\Temp\
+\\.\pipe\
+\\.\mailslot\
+
+# Common file paths and extensions
+.txt
+.exe
+.dll
+.sys
+.log
+.tmp
+.dat
+.bin
+.cfg
+.ini
+
+# Windows device names
+CON
+PRN
+AUX
+NUL
+COM1
+COM2
+COM3
+COM4
+COM5
+COM6
+COM7
+COM8
+COM9
+LPT1
+LPT2
+LPT3
+LPT4
+LPT5
+LPT6
+LPT7
+LPT8
+LPT9
+
+# Common paths
+C:\
+C:\Windows
+C:\Windows\System32
+C:\Program Files
+C:\Users
+\\localhost
+\\127.0.0.1
+\\?\
+\\?\C:\
+\\?\UNC\
+
+# Special characters
+..
+..\
+\
+/
+*
+?
+<
+>
+|
+"
+:
+
+# Registry paths
+HKEY_LOCAL_MACHINE
+HKEY_CURRENT_USER
+HKEY_CLASSES_ROOT
+HKEY_USERS
+HKEY_CURRENT_CONFIG
+SOFTWARE
+SYSTEM
+HARDWARE
+
+# Common registry keys
+Microsoft
+Windows
+CurrentVersion
+Run
+Services
+Drivers
+
+# Network related
+localhost
+127.0.0.1
+0.0.0.0
+255.255.255.255
+::1
+::
+
+# Common sizes (little endian)
+\x00\x00\x00\x00
+\x01\x00\x00\x00
+\x00\x01\x00\x00
+\x00\x10\x00\x00
+\x00\x00\x01\x00
+\xFF\xFF\xFF\xFF
+\x00\x00\x00\x80
+
+# Magic values
+\xDE\xAD\xBE\xEF
+\xCA\xFE\xBA\xBE
+\xFE\xED\xFA\xCE
+\x41\x41\x41\x41
+\x42\x42\x42\x42
+
+# Format strings
+%s
+%d
+%x
+%p
+%n
+%c
+%u
+%%
+
+# Common strings
+admin
+test
+password
+user
+guest
+system
+root
+administrator
+
+# Null bytes and delimiters
+\x00
+\x0A
+\x0D
+\x20
+\x09
+\xFF
+
+# Unicode BOM
+\xFF\xFE
+\xFE\xFF
+\xEF\xBB\xBF

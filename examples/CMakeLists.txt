@@ -1,0 +1,8 @@
+add_executable(api_fuzzing_example api_fuzzing_example.cpp)
+target_link_libraries(api_fuzzing_example winuzzf_core winuzzf_targets)
+
+add_executable(driver_fuzzing_example driver_fuzzing_example.cpp)
+target_link_libraries(driver_fuzzing_example winuzzf_core winuzzf_targets)
+
+# Copy examples to output directory
+install(TARGETS api_fuzzing_example driver_fuzzing_example DESTINATION examples)

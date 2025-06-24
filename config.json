@@ -1,0 +1,54 @@
+{
+    "fuzzer": {
+        "max_iterations": 1000000,
+        "timeout_ms": 5000,
+        "worker_threads": 8,
+        "corpus_dir": "corpus",
+        "crashes_dir": "crashes",
+        "logs_dir": "logs"
+    },
+    "coverage": {
+        "type": "etw",
+        "modules": [
+            "kernel32.dll",
+            "ntdll.dll",
+            "user32.dll"
+        ],
+        "functions": [
+            "NtCreateFile",
+            "NtDeviceIoControlFile",
+            "NtAllocateVirtualMemory"
+        ]
+    },
+    "mutations": {
+        "strategies": [
+            "random",
+            "deterministic", 
+            "dictionary",
+            "havoc"
+        ],
+        "max_size": 65536,
+        "dict_file": "dictionary.txt"
+    },
+    "targets": {
+        "api_examples": [
+            {
+                "module": "kernel32.dll",
+                "function": "CreateFileW",
+                "description": "File creation API"
+            },
+            {
+                "module": "advapi32.dll", 
+                "function": "RegOpenKeyExW",
+                "description": "Registry access API"
+            }
+        ],
+        "driver_examples": [
+            {
+                "device": "\\\\.\\PHYSICALDRIVE0",
+                "ioctl": "0x70000",
+                "description": "Disk driver IOCTL"
+            }
+        ]
+    }
+}

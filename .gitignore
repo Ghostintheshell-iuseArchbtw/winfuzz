@@ -1,0 +1,73 @@
+# Build directories
+build/
+bin/
+lib/
+
+# Visual Studio files
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+.vs/
+
+# Object files
+*.obj
+*.o
+*.lo
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Debug files
+*.pdb
+*.ilk
+*.exp
+
+# Logs and output
+logs/
+crashes/
+crashes_*/
+corpus/
+corpus_*/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.#*
+\#*#
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
