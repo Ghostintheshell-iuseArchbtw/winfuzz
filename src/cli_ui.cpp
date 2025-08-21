@@ -8,7 +8,7 @@
 namespace winuzzf {
 namespace cli {
 
-TerminalUI::TerminalUI() {
+TerminalUI::TerminalUI() : spinner_index_(0) {
     console_handle_ = GetStdHandle(STD_OUTPUT_HANDLE);
     GetConsoleScreenBufferInfo(console_handle_, &original_info_);
     UpdateConsoleSize();
@@ -109,7 +109,9 @@ void TerminalUI::UpdateStatus(const std::string& status) {
     SetCursorPosition(0, console_height_ - 1);
     Print(std::string(console_width_, ' '), Color::White); // Clear line
     SetCursorPosition(0, console_height_ - 1);
-    Print("Status: " + status, Color::Bright_Cyan);
+    char spinner = kSpinnerFrames[spinner_index_];
+    spinner_index_ = (spinner_index_ + 1) % 4;
+    Print(std::string(1, spinner) + " Status: " + status, Color::Bright_Cyan);
 }
 
 void TerminalUI::DisplayBanner() {

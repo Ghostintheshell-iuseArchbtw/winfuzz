@@ -32,10 +32,13 @@ lib/
 *.exp
 
 # Logs and output
-logs/
-crashes/
+logs/*
+!logs/.gitkeep
+crashes/*
+!crashes/.gitkeep
 crashes_*/
-corpus/
+corpus/*
+!corpus/.gitkeep
 corpus_*/
 *.log
 
