@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <thread>
 #include <atomic>
+#include <ctime>
 
 namespace winuzzf {
 namespace cli {
@@ -111,21 +112,26 @@ void TerminalUI::PrintInfo(const std::string& text) {
 }
 
 void TerminalUI::DrawProgressBar(const std::string& label, double percentage, int width) {
+    percentage = std::clamp(percentage, 0.0, 100.0);
+    if (width <= 0) {
+        width = 50;
+    }
+
     std::cout << label << " [";
-    
+
     int filled = static_cast<int>(percentage * width / 100.0);
     int remaining = width - filled;
-    
+
     SetColor(Color::Bright_Green);
     for (int i = 0; i < filled; ++i) {
         std::cout << "█";
     }
-    
-    SetColor(Color::White);
+
+    SetColor(Color::Bright_Red);
     for (int i = 0; i < remaining; ++i) {
         std::cout << "░";
     }
-    
+
     ResetColor();
     std::cout << "] " << std::fixed << std::setprecision(1) << percentage << "%\n";
 }
@@ -136,7 +142,16 @@ void TerminalUI::UpdateStatus(const std::string& status) {
     SetCursorPosition(0, console_height_ - 1);
     char spinner = kSpinnerFrames[spinner_index_];
     spinner_index_ = (spinner_index_ + 1) % 4;
-    Print(std::string(1, spinner) + " Status: " + status, Color::Bright_Cyan);
+
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    std::tm* tm_info = std::localtime(&t);
+    std::ostringstream oss;
+    if (tm_info) {
+        oss << std::put_time(tm_info, "%H:%M:%S");
+    }
+
+    Print(std::string(1, spinner) + " [" + oss.str() + "] Status: " + status, Color::Bright_Cyan);
 }
 
 void TerminalUI::DisplayBanner() {

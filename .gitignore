@@ -39,6 +39,9 @@ crashes/*
 crashes_*/
 corpus/*
 !corpus/.gitkeep
+!corpus/*.txt
+!corpus/*.bin
+!corpus/*.json
 corpus_*/
 *.log
 

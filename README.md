@@ -11,6 +11,7 @@ A comprehensive, high-performance fuzzing framework specifically designed for Wi
 - **Crash Analysis**: Automatic exploitability assessment and deduplication
 - **High Performance**: Multi-threaded execution with optimized corpus management
 - **Comprehensive Reporting**: Detailed logs and final analysis reports
+- **Starter Corpus & Dictionary**: Sample seeds and extensive dictionary for immediate fuzzing
 
 ## 🎯 Quick Start
 
