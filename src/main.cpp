@@ -385,39 +385,48 @@ int main(int argc, char* argv[]) {
         g_ui->PrintSuccess("Starting fuzzer...");
         g_ui->PrintInfo("Press Ctrl+C to stop gracefully");
         g_ui->PrintLine("");
-        
+
+        g_ui->HideCursor();
         auto start_time = std::chrono::steady_clock::now();
         g_stats->UpdateStartTime(start_time);
-        
+
         g_fuzzer->Start();
-        
+
         // Main fuzzing loop with real-time updates
         while (g_fuzzer->IsRunning()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            
+
             // Update statistics
             if (g_stats) {
                 g_stats->UpdateIterations(g_fuzzer->GetIterationCount());
                 g_stats->UpdateCrashes(g_fuzzer->GetCrashCount());
                 g_stats->UpdateHangs(g_fuzzer->GetHangCount());
                 g_stats->UpdateExecPerSec(g_fuzzer->GetExecutionsPerSecond());
-                
+
                 auto coverage_info = g_fuzzer->GetCoverageInfo();
                 g_stats->UpdateCoverage(coverage_info.coverage_percentage, coverage_info.basic_blocks_hit);
                 g_stats->UpdateCorpusSize(g_fuzzer->GetCorpusSize());
-                
+
                 g_stats->Refresh();
             }
+
+            if (g_ui) {
+                g_ui->UpdateStatus("Fuzzing in progress");
+            }
         }
-        
+
         auto end_time = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
-        
+
         // Clear stats display and show final results
         if (g_stats) {
             g_stats->Clear();
         }
-        
+        if (g_ui) {
+            g_ui->ShowCursor();
+            g_ui->UpdateStatus("Fuzzing complete");
+        }
+
         g_ui->PrintLine("");
         g_ui->PrintLine("=== FUZZING COMPLETE ===", cli::Color::Bright_Green);
         g_ui->PrintSuccess("Total iterations: " + std::to_string(g_fuzzer->GetIterationCount()));

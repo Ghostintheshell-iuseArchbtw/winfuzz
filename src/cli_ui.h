@@ -104,7 +104,9 @@ private:
     CONSOLE_SCREEN_BUFFER_INFO original_info_;
     int console_width_;
     int console_height_;
-    
+    int spinner_index_;
+    static inline const char kSpinnerFrames[4] = {'|', '/', '-', '\'};
+
     void UpdateConsoleSize();
 };
 
