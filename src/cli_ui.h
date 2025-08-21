@@ -82,6 +82,7 @@ public:
     void PrintInfo(const std::string& text);
     
     // Progress and status display
+    // Draws a color-coded progress bar with percentage information
     void DrawProgressBar(const std::string& label, double percentage, int width = 50);
     void UpdateStatus(const std::string& status);
     void DisplayBanner();

@@ -147,3 +147,43 @@ administrator
 \xFF\xFE
 \xFE\xFF
 \xEF\xBB\xBF
+# Environment variables
+%SystemRoot%
+%SYSTEMDRIVE%
+%TEMP%
+%TMP%
+%APPDATA%
+%LOCALAPPDATA%
+%PROGRAMFILES%
+%USERPROFILE%
+%PATH%
+
+# Additional file extensions
+.bat
+.cmd
+.msi
+.ps1
+.reg
+.json
+.xml
+.html
+.js
+.css
+.vbs
+
+# Network protocols and URLs
+http://
+https://
+ftp://
+file://
+smb://
+ldap://
+tcp://
+udp://
+
+# Common error codes
+0xC0000005
+0x80004005
+0xDEADBEEF
+0xBAADF00D
+

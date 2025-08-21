@@ -17,6 +17,14 @@
 - **Interactive Elements**: Confirmation dialogs, user prompts, progress indicators
 - **Terminal Control**: Cursor positioning, color management, console size detection
 
+### 📚 Corpus and Dictionary Enhancements
+- Added initial sample seeds under `corpus/` for quicker experimentation
+- Expanded `dictionary.txt` with environment variables, file extensions, network protocols, and common error codes
+
+### 🖥️ UI/UX Polishing
+- Progress bar now uses color-coded segments with safer bounds
+- Status line shows a timestamp alongside the activity spinner
+
 ### 🔧 Enhanced Command-Line Interface
 - **Extended Help System**: 
   - `--help`: Full documentation
