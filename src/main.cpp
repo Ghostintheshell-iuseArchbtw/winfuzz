@@ -151,6 +151,7 @@ MutationStrategy ParseMutationStrategy(const std::string& strategy) {
 int main(int argc, char* argv[]) {
     // Initialize UI first
     g_ui = std::make_unique<cli::TerminalUI>();
+    g_ui->SetTitle("WinFuzz - Advanced Windows Fuzzing Framework");
     
     // Show banner
     PrintBanner();
@@ -210,9 +211,12 @@ int main(int argc, char* argv[]) {
         g_stats = std::make_unique<cli::FuzzingStatsDisplay>(g_ui.get());
         
         g_ui->PrintInfo("Initializing fuzzer...");
-        
+
+        cli::Spinner spinner(g_ui.get());
+        spinner.Start("Setting up");
         // Create fuzzer instance
         g_fuzzer = WinFuzzer::Create();
+        spinner.Stop();
         
         // Configure fuzzer
         FuzzConfig fuzz_config;
