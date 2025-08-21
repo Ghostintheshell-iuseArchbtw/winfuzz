@@ -7,6 +7,8 @@
 #include <windows.h>
 #include <iostream>
 #include <sstream>
+#include <thread>
+#include <atomic>
 
 namespace winuzzf {
 namespace cli {
@@ -66,6 +68,8 @@ public:
     void HideCursor();
     void ShowCursor();
     void SetCursorPosition(int x, int y);
+    void ClearLine(int y);
+    void SetTitle(const std::string& title);
     void SetColor(Color color);
     void ResetColor();
     
@@ -100,8 +104,26 @@ private:
     CONSOLE_SCREEN_BUFFER_INFO original_info_;
     int console_width_;
     int console_height_;
-    
+    int spinner_index_;
+    static inline const char kSpinnerFrames[4] = {'|', '/', '-', '\'};
+
     void UpdateConsoleSize();
+};
+
+// Simple animated spinner for long running operations
+class Spinner {
+public:
+    explicit Spinner(TerminalUI* ui);
+    ~Spinner();
+
+    void Start(const std::string& message);
+    void Stop();
+
+private:
+    void Run(std::string message);
+    TerminalUI* ui_;
+    std::thread thread_;
+    std::atomic<bool> running_;
 };
 
 // Real-time fuzzing stats display

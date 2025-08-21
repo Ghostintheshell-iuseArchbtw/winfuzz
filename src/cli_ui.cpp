@@ -4,11 +4,13 @@
 #include <sstream>
 #include <filesystem>
 #include <algorithm>
+#include <thread>
+#include <atomic>
 
 namespace winuzzf {
 namespace cli {
 
-TerminalUI::TerminalUI() {
+TerminalUI::TerminalUI() : spinner_index_(0) {
     console_handle_ = GetStdHandle(STD_OUTPUT_HANDLE);
     GetConsoleScreenBufferInfo(console_handle_, &original_info_);
     UpdateConsoleSize();
@@ -25,7 +27,20 @@ TerminalUI::~TerminalUI() {
 }
 
 void TerminalUI::Clear() {
-    system("cls");
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    DWORD count;
+    DWORD cell_count;
+    COORD home = {0, 0};
+
+    if (!GetConsoleScreenBufferInfo(console_handle_, &csbi)) {
+        system("cls");
+        return;
+    }
+
+    cell_count = csbi.dwSize.X * csbi.dwSize.Y;
+    FillConsoleOutputCharacter(console_handle_, ' ', cell_count, home, &count);
+    FillConsoleOutputAttribute(console_handle_, csbi.wAttributes, cell_count, home, &count);
+    SetConsoleCursorPosition(console_handle_, home);
 }
 
 void TerminalUI::HideCursor() {
@@ -45,6 +60,16 @@ void TerminalUI::ShowCursor() {
 void TerminalUI::SetCursorPosition(int x, int y) {
     COORD pos = { static_cast<SHORT>(x), static_cast<SHORT>(y) };
     SetConsoleCursorPosition(console_handle_, pos);
+}
+
+void TerminalUI::ClearLine(int y) {
+    SetCursorPosition(0, y);
+    Print(std::string(console_width_, ' '), Color::White);
+    SetCursorPosition(0, y);
+}
+
+void TerminalUI::SetTitle(const std::string& title) {
+    SetConsoleTitleA(title.c_str());
 }
 
 void TerminalUI::SetColor(Color color) {
@@ -109,7 +134,9 @@ void TerminalUI::UpdateStatus(const std::string& status) {
     SetCursorPosition(0, console_height_ - 1);
     Print(std::string(console_width_, ' '), Color::White); // Clear line
     SetCursorPosition(0, console_height_ - 1);
-    Print("Status: " + status, Color::Bright_Cyan);
+    char spinner = kSpinnerFrames[spinner_index_];
+    spinner_index_ = (spinner_index_ + 1) % 4;
+    Print(std::string(1, spinner) + " Status: " + status, Color::Bright_Cyan);
 }
 
 void TerminalUI::DisplayBanner() {
@@ -191,6 +218,40 @@ std::string TerminalUI::FormatNumber(uint64_t number) {
     }
     
     return formatted;
+}
+
+// Spinner implementation
+Spinner::Spinner(TerminalUI* ui) : ui_(ui), running_(false) {}
+
+Spinner::~Spinner() {
+    Stop();
+}
+
+void Spinner::Start(const std::string& message) {
+    if (running_) return;
+    running_ = true;
+    thread_ = std::thread(&Spinner::Run, this, message);
+}
+
+void Spinner::Run(std::string message) {
+    const char* frames = "|/-\\";
+    size_t index = 0;
+    int line = ui_->GetHeight() - 2;
+    while (running_) {
+        ui_->SetCursorPosition(0, line);
+        ui_->Print(message + " " + frames[index % 4], Color::Bright_Cyan);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        index++;
+    }
+    ui_->ClearLine(line);
+}
+
+void Spinner::Stop() {
+    if (!running_) return;
+    running_ = false;
+    if (thread_.joinable()) {
+        thread_.join();
+    }
 }
 
 // FuzzingStatsDisplay implementation
