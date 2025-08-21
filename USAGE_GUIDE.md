@@ -74,7 +74,7 @@ winuzzf/
 ├── tools/                      # Utility tools
 ├── tests/                      # Unit tests
 ├── config.json                 # Configuration file
-├── dictionary.txt              # Fuzzing dictionary
+├── dictionary.txt              # Fuzzing dictionary (auto-loaded if present)
 └── README.md                   # Main documentation
 ```
 
@@ -186,6 +186,7 @@ fuzzer->Start();
     }
 }
 ```
+If `dict_file` is omitted, WinFuzz automatically attempts to load `dictionary.txt` from the current directory.
 
 ### Coverage Types
 
