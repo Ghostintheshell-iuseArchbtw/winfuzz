@@ -11,6 +11,7 @@ A comprehensive, high-performance fuzzing framework specifically designed for Wi
 - **Crash Analysis**: Automatic exploitability assessment and deduplication
 - **High Performance**: Multi-threaded execution with optimized corpus management
 - **Comprehensive Reporting**: Detailed logs and final analysis reports
+- **Auto-Loading Resources**: Automatically loads `corpus/` and `dictionary.txt` when present
 
 ## 🎯 Quick Start
 
@@ -18,6 +19,7 @@ A comprehensive, high-performance fuzzing framework specifically designed for Wi
 ```bash
 winuzzf --target-api kernel32.dll CreateFileW --corpus corpus --crashes crashes
 ```
+Sample seed inputs are available in the `corpus/` directory.
 
 ### Driver Fuzzing
 ```bash
@@ -28,6 +30,7 @@ winuzzf --target-driver \\.\MyDriver --ioctl 0x220000 --coverage intel-pt
 ```bash
 winuzzf --target-exe notepad.exe --dict dictionary.txt --seed sample.txt
 ```
+If `--dict` is not specified, WinFuzz will automatically load `dictionary.txt` from the current directory when it exists.
 
 ## Architecture
 

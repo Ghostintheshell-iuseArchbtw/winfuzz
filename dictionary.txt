@@ -23,6 +23,11 @@ C:\Temp\
 .bin
 .cfg
 .ini
+.xml
+.json
+.html
+.doc
+.pdf
 
 # Windows device names
 CON
@@ -82,6 +87,8 @@ HKEY_CURRENT_CONFIG
 SOFTWARE
 SYSTEM
 HARDWARE
+SECURITY
+SAM
 
 # Common registry keys
 Microsoft
@@ -98,6 +105,10 @@ localhost
 255.255.255.255
 ::1
 ::
+http://
+https://
+ftp://
+file://
 
 # Common sizes (little endian)
 \x00\x00\x00\x00
@@ -147,3 +158,28 @@ administrator
 \xFF\xFE
 \xFE\xFF
 \xEF\xBB\xBF
+
+# Environment variables
+%SYSTEMROOT%
+%WINDIR%
+%TEMP%
+%TMP%
+%APPDATA%
+%PROGRAMDATA%
+%USERNAME%
+%COMPUTERNAME%
+%PATH%
+
+# Common file names
+desktop.ini
+Thumbs.db
+pagefile.sys
+ntuser.dat
+
+# Registry data types
+REG_SZ
+REG_DWORD
+REG_QWORD
+REG_BINARY
+REG_EXPAND_SZ
+REG_MULTI_SZ

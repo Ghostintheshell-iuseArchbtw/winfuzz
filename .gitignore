@@ -39,6 +39,7 @@ crashes/*
 crashes_*/
 corpus/*
 !corpus/.gitkeep
+!corpus/sample_*
 corpus_*/
 *.log
 

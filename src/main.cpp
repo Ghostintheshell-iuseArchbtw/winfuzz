@@ -291,13 +291,14 @@ int main(int argc, char* argv[]) {
         g_ui->PrintInfo("Using mutation strategy: " + config.mutation_strategy);
         g_fuzzer->AddMutationStrategy(ParseMutationStrategy(config.mutation_strategy));
         
-        // Load dictionary if provided
-        if (!config.dict_file.empty()) {
-            g_ui->PrintInfo("Loading dictionary: " + config.dict_file);
+        // Load dictionary if provided or default exists
+        std::string dict_file = config.dict_file.empty() ? "dictionary.txt" : config.dict_file;
+        if (std::filesystem::exists(dict_file)) {
+            g_ui->PrintInfo("Loading dictionary: " + dict_file);
             try {
-                auto dict_data = utils::ReadFile(config.dict_file);
+                auto dict_data = utils::ReadFile(dict_file);
                 std::string dict_str(dict_data.begin(), dict_data.end());
-                
+
                 // Simple dictionary parsing (one entry per line)
                 std::vector<std::string> dictionary;
                 std::istringstream iss(dict_str);
@@ -307,12 +308,14 @@ int main(int argc, char* argv[]) {
                         dictionary.push_back(line);
                     }
                 }
-                
+
                 g_fuzzer->SetDictionary(dictionary);
                 g_ui->PrintSuccess("Loaded " + std::to_string(dictionary.size()) + " dictionary entries");
             } catch (const std::exception& e) {
                 g_ui->PrintWarning("Failed to load dictionary: " + std::string(e.what()));
             }
+        } else if (!config.dict_file.empty()) {
+            g_ui->PrintWarning("Dictionary file not found: " + dict_file);
         }
         
         // Load seed files
