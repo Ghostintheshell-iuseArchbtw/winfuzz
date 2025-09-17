@@ -4,7 +4,9 @@
 #include <chrono>
 #include <memory>
 #include <vector>
-#include <windows.h>
+#ifdef _WIN32
+#    include <windows.h>
+#endif
 #include <iostream>
 #include <sstream>
 #include <thread>
@@ -101,14 +103,19 @@ public:
     std::string FormatNumber(uint64_t number);
 
 private:
+    int spinner_index_;
+#ifdef _WIN32
     HANDLE console_handle_;
     CONSOLE_SCREEN_BUFFER_INFO original_info_;
+#else
+    Color original_color_;
+#endif
     int console_width_;
     int console_height_;
-    int spinner_index_;
-    static inline const char kSpinnerFrames[4] = {'|', '/', '-', '\'};
+    static inline const char kSpinnerFrames[4] = {'|', '/', '-', static_cast<char>(92)};
 
     void UpdateConsoleSize();
+    void ApplyColor(Color color);
 };
 
 // Simple animated spinner for long running operations

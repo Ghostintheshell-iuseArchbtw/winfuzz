@@ -1,14 +1,20 @@
 #include "winuzzf.h"
-#include <iostream>
-#include <windows.h>
-#include <thread>
 #include <chrono>
+#include <iostream>
+#include <thread>
+#ifdef _WIN32
+#    include <windows.h>
+#endif
 
 using namespace winuzzf;
 
 int main() {
+#ifndef _WIN32
+    std::cout << "WinFuzz driver example is only available on Windows." << std::endl;
+    return 0;
+#else
     std::cout << "WinFuzz Driver Fuzzing Example" << std::endl;
-    
+
     try {
         // Create fuzzer instance
         auto fuzzer = WinFuzzer::Create();
@@ -143,6 +149,7 @@ int main() {
         std::cerr << "Note: Driver fuzzing requires the target driver to be installed and accessible" << std::endl;
         return 1;
     }
-    
+
     return 0;
+#endif
 }

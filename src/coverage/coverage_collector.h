@@ -2,9 +2,18 @@
 
 #include "winuzzf.h"
 #include <memory>
-#include <unordered_set>
 #include <mutex>
-#include <windows.h>
+#include <unordered_set>
+#ifdef _WIN32
+#    include <windows.h>
+#else
+struct GUID {
+    unsigned long Data1 = 0;
+    unsigned short Data2 = 0;
+    unsigned short Data3 = 0;
+    unsigned char Data4[8] = {0};
+};
+#endif
 
 namespace winuzzf {
 

@@ -1,9 +1,13 @@
 #include "winuzzf.h"
-#include <iostream>
 #include <filesystem>
 #include <fstream>
-#include <sstream>
 #include <iomanip>
+#include <iostream>
+#include <sstream>
+#ifndef _WIN32
+#    include <cerrno>
+#    include <system_error>
+#endif
 
 namespace winuzzf {
 namespace utils {
@@ -32,36 +36,64 @@ void WriteFile(const std::string& filename, const std::vector<uint8_t>& data) {
 }
 
 std::string GetExecutablePath() {
-    char path[MAX_PATH];
-    GetModuleFileNameA(nullptr, path, MAX_PATH);
-    return std::string(path);
+    std::filesystem::path result;
+#ifdef _WIN32
+    char path[MAX_PATH] = {0};
+    if (GetModuleFileNameA(nullptr, path, MAX_PATH) != 0) {
+        result = path;
+    }
+#else
+    std::error_code ec;
+    auto link = std::filesystem::read_symlink("/proc/self/exe", ec);
+    if (!ec) {
+        result = link;
+    }
+#endif
+    if (result.empty()) {
+        result = std::filesystem::current_path();
+    }
+    return result.string();
 }
 
 std::string GetModulePath(HMODULE module) {
-    char path[MAX_PATH];
-    GetModuleFileNameA(module, path, MAX_PATH);
-    return std::string(path);
+    std::filesystem::path result;
+#ifdef _WIN32
+    char path[MAX_PATH] = {0};
+    if (GetModuleFileNameA(module, path, MAX_PATH) != 0) {
+        result = path;
+    }
+#else
+    (void)module;
+    result = std::filesystem::current_path();
+#endif
+    return result.string();
 }
 
 bool IsProcessRunning(DWORD pid) {
+#ifdef _WIN32
     HANDLE process = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
     if (process == nullptr) {
         return false;
     }
-    
-    DWORD exit_code;
+
+    DWORD exit_code = 0;
     BOOL result = GetExitCodeProcess(process, &exit_code);
     CloseHandle(process);
-    
+
     return result && exit_code == STILL_ACTIVE;
+#else
+    std::filesystem::path proc_path = std::filesystem::path("/proc") / std::to_string(pid);
+    return std::filesystem::exists(proc_path);
+#endif
 }
 
 std::string GetLastErrorString() {
+#ifdef _WIN32
     DWORD error = GetLastError();
     if (error == 0) {
         return std::string();
     }
-    
+
     LPSTR message_buffer = nullptr;
     size_t size = FormatMessageA(
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -72,11 +104,18 @@ std::string GetLastErrorString() {
         0,
         nullptr
     );
-    
+
     std::string message(message_buffer, size);
     LocalFree(message_buffer);
-    
+
     return message;
+#else
+    int err = errno;
+    if (err == 0) {
+        return std::string();
+    }
+    return std::system_error(err, std::generic_category()).what();
+#endif
 }
 
 std::string BytesToHex(const std::vector<uint8_t>& data) {

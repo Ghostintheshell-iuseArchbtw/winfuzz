@@ -8,6 +8,8 @@ target_include_directories(winuzzf_coverage PUBLIC
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(winuzzf_coverage
-    advapi32
-)
+if(WIN32)
+    target_link_libraries(winuzzf_coverage
+        advapi32
+    )
+endif()
