@@ -8,7 +8,9 @@ target_include_directories(winuzzf_crash PUBLIC
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(winuzzf_crash
-    dbghelp
-    psapi
-)
+if(WIN32)
+    target_link_libraries(winuzzf_crash
+        dbghelp
+        psapi
+    )
+endif()

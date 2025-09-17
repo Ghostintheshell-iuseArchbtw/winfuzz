@@ -1,40 +1,70 @@
 #include "cli_ui.h"
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <filesystem>
 #include <algorithm>
-#include <thread>
 #include <atomic>
 #include <ctime>
+#include <filesystem>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <thread>
+#include <cstring>
+#include <cstdlib>
+#ifndef _WIN32
+#    if defined(__unix__) || defined(__APPLE__)
+#        include <sys/ioctl.h>
+#        include <unistd.h>
+#    endif
+#endif
 
 namespace winuzzf {
 namespace cli {
 
-TerminalUI::TerminalUI() : spinner_index_(0) {
+TerminalUI::TerminalUI()
+    : spinner_index_(0)
+#ifdef _WIN32
+{
     console_handle_ = GetStdHandle(STD_OUTPUT_HANDLE);
-    GetConsoleScreenBufferInfo(console_handle_, &original_info_);
+    if (console_handle_ == INVALID_HANDLE_VALUE) {
+        console_handle_ = nullptr;
+    }
+    if (console_handle_) {
+        GetConsoleScreenBufferInfo(console_handle_, &original_info_);
+    } else {
+        std::memset(&original_info_, 0, sizeof(original_info_));
+    }
     UpdateConsoleSize();
-    
-    // Enable virtual terminal processing for color support
+
     DWORD mode = 0;
-    GetConsoleMode(console_handle_, &mode);
-    SetConsoleMode(console_handle_, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+    if (console_handle_ && GetConsoleMode(console_handle_, &mode)) {
+        SetConsoleMode(console_handle_, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+    }
 }
+#else
+    , original_color_(Color::Reset)
+{
+    UpdateConsoleSize();
+}
+#endif
 
 TerminalUI::~TerminalUI() {
     ResetColor();
     ShowCursor();
 }
 
+#ifdef _WIN32
 void TerminalUI::Clear() {
+    if (!console_handle_) {
+        std::cout << std::string('\f');
+        return;
+    }
+
     CONSOLE_SCREEN_BUFFER_INFO csbi;
-    DWORD count;
-    DWORD cell_count;
+    DWORD count = 0;
+    DWORD cell_count = 0;
     COORD home = {0, 0};
 
     if (!GetConsoleScreenBufferInfo(console_handle_, &csbi)) {
-        system("cls");
+        std::system("cls");
         return;
     }
 
@@ -45,6 +75,9 @@ void TerminalUI::Clear() {
 }
 
 void TerminalUI::HideCursor() {
+    if (!console_handle_) {
+        return;
+    }
     CONSOLE_CURSOR_INFO cursorInfo;
     GetConsoleCursorInfo(console_handle_, &cursorInfo);
     cursorInfo.bVisible = FALSE;
@@ -52,6 +85,9 @@ void TerminalUI::HideCursor() {
 }
 
 void TerminalUI::ShowCursor() {
+    if (!console_handle_) {
+        return;
+    }
     CONSOLE_CURSOR_INFO cursorInfo;
     GetConsoleCursorInfo(console_handle_, &cursorInfo);
     cursorInfo.bVisible = TRUE;
@@ -59,26 +95,124 @@ void TerminalUI::ShowCursor() {
 }
 
 void TerminalUI::SetCursorPosition(int x, int y) {
+    if (!console_handle_) {
+        return;
+    }
     COORD pos = { static_cast<SHORT>(x), static_cast<SHORT>(y) };
     SetConsoleCursorPosition(console_handle_, pos);
-}
-
-void TerminalUI::ClearLine(int y) {
-    SetCursorPosition(0, y);
-    Print(std::string(console_width_, ' '), Color::White);
-    SetCursorPosition(0, y);
 }
 
 void TerminalUI::SetTitle(const std::string& title) {
     SetConsoleTitleA(title.c_str());
 }
 
-void TerminalUI::SetColor(Color color) {
-    SetConsoleTextAttribute(console_handle_, static_cast<WORD>(color));
+void TerminalUI::ApplyColor(Color color) {
+    if (console_handle_) {
+        SetConsoleTextAttribute(console_handle_, static_cast<WORD>(color));
+    }
 }
 
 void TerminalUI::ResetColor() {
-    SetConsoleTextAttribute(console_handle_, original_info_.wAttributes);
+    if (console_handle_) {
+        SetConsoleTextAttribute(console_handle_, original_info_.wAttributes);
+    }
+}
+
+void TerminalUI::UpdateConsoleSize() {
+    if (!console_handle_) {
+        console_width_ = 120;
+        console_height_ = 30;
+        return;
+    }
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(console_handle_, &csbi);
+    console_width_ = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    console_height_ = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+}
+
+#else
+namespace {
+const char* ToAnsiCode(Color color) {
+    switch (color) {
+        case Color::Reset: return "0";
+        case Color::Red: return "31";
+        case Color::Green: return "32";
+        case Color::Yellow: return "33";
+        case Color::Blue: return "34";
+        case Color::Magenta: return "35";
+        case Color::Cyan: return "36";
+        case Color::White: return "37";
+        case Color::Bright_Red: return "91";
+        case Color::Bright_Green: return "92";
+        case Color::Bright_Yellow: return "93";
+        case Color::Bright_Blue: return "94";
+        case Color::Bright_Magenta: return "95";
+        case Color::Bright_Cyan: return "96";
+        case Color::Bright_White: return "97";
+        default: return "0";
+    }
+}
+} // namespace
+
+void TerminalUI::Clear() {
+    std::cout << "\033[2J\033[H";
+}
+
+void TerminalUI::HideCursor() {
+    std::cout << "\033[?25l";
+    std::cout.flush();
+}
+
+void TerminalUI::ShowCursor() {
+    std::cout << "\033[?25h";
+    std::cout.flush();
+}
+
+void TerminalUI::SetCursorPosition(int x, int y) {
+    std::cout << "\033[" << (y + 1) << ';' << (x + 1) << 'H';
+}
+
+void TerminalUI::SetTitle(const std::string& title) {
+    std::cout << "\033]0;" << title << "\007";
+}
+
+void TerminalUI::ApplyColor(Color color) {
+    std::cout << "\033[" << ToAnsiCode(color) << 'm';
+}
+
+void TerminalUI::ResetColor() {
+    ApplyColor(original_color_);
+}
+
+void TerminalUI::UpdateConsoleSize() {
+#if defined(__unix__) || defined(__APPLE__)
+    struct winsize ws {0, 0, 0, 0};
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 0 && ws.ws_row > 0) {
+        console_width_ = ws.ws_col;
+        console_height_ = ws.ws_row;
+        return;
+    }
+#endif
+    const char* cols = std::getenv("COLUMNS");
+    const char* lines = std::getenv("LINES");
+    console_width_ = cols ? std::atoi(cols) : 120;
+    console_height_ = lines ? std::atoi(lines) : 30;
+}
+
+#endif
+
+void TerminalUI::ClearLine(int y) {
+    SetCursorPosition(0, y);
+#ifdef _WIN32
+    Print(std::string(console_width_, ' '), Color::White);
+#else
+    std::cout << "\033[2K";
+#endif
+    SetCursorPosition(0, y);
+}
+
+void TerminalUI::SetColor(Color color) {
+    ApplyColor(color);
 }
 
 void TerminalUI::Print(const std::string& text, Color color) {
@@ -138,7 +272,11 @@ void TerminalUI::DrawProgressBar(const std::string& label, double percentage, in
 
 void TerminalUI::UpdateStatus(const std::string& status) {
     SetCursorPosition(0, console_height_ - 1);
-    Print(std::string(console_width_, ' '), Color::White); // Clear line
+#ifdef _WIN32
+    Print(std::string(console_width_, ' '), Color::White);
+#else
+    std::cout << "\033[2K";
+#endif
     SetCursorPosition(0, console_height_ - 1);
     char spinner = kSpinnerFrames[spinner_index_];
     spinner_index_ = (spinner_index_ + 1) % 4;
@@ -159,12 +297,12 @@ void TerminalUI::DisplayBanner() {
     PrintLine(R"(
     ██╗    ██╗██╗███╗   ██╗    ███████╗██╗   ██╗███████╗███████╗
     ██║    ██║██║████╗  ██║    ██╔════╝██║   ██║╚══███╔╝╚══███╔╝
-    ██║ █╗ ██║██║██╔██╗ ██║    █████╗  ██║   ██║  ███╔╝   ███╔╝ 
-    ██║███╗██║██║██║╚██╗██║    ██╔══╝  ██║   ██║ ███╔╝   ███╔╝  
+    ██║ █╗ ██║██║██╔██╗ ██║    █████╗  ██║   ██║  ███╔╝   ███╔╝
+    ██║███╗██║██║██║╚██╗██║    ██╔══╝  ██║   ██║ ███╔╝   ███╔╝
     ╚███╔███╔╝██║██║ ╚████║    ██║     ╚██████╔╝███████╗███████╗
      ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝    ╚═╝      ╚═════╝ ╚══════╝╚══════╝
     )", Color::Bright_Cyan);
-    
+
     PrintLine("            Windows Advanced Fuzzing Framework v2.0", Color::Bright_White);
     PrintLine("            Intelligent vulnerability discovery platform", Color::Cyan);
     PrintLine("", Color::White);
@@ -183,13 +321,6 @@ std::string TerminalUI::GetInput(const std::string& prompt) {
     std::string input;
     std::getline(std::cin, input);
     return input;
-}
-
-void TerminalUI::UpdateConsoleSize() {
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-    GetConsoleScreenBufferInfo(console_handle_, &csbi);
-    console_width_ = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-    console_height_ = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
 }
 
 std::string TerminalUI::FormatTime(std::chrono::seconds duration) {
@@ -345,7 +476,7 @@ void FuzzingStatsDisplay::Clear() {
 void FuzzingStatsDisplay::DrawBox(int x, int y, int width, int height, const std::string& title) {
     ui_->SetCursorPosition(x, y);
     ui_->Print("┌", Color::Bright_White);
-    ui_->Print(std::string(width - 2, '─'), Color::Bright_White);
+    ui_->Print(std::string(width - 2, '-'), Color::Bright_White);
     ui_->Print("┐", Color::Bright_White);
     
     // Title
@@ -365,7 +496,7 @@ void FuzzingStatsDisplay::DrawBox(int x, int y, int width, int height, const std
     // Bottom
     ui_->SetCursorPosition(x, y + height - 1);
     ui_->Print("└", Color::Bright_White);
-    ui_->Print(std::string(width - 2, '─'), Color::Bright_White);
+    ui_->Print(std::string(width - 2, '-'), Color::Bright_White);
     ui_->Print("┘", Color::Bright_White);
 }
 

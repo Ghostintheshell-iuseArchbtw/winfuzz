@@ -2,10 +2,15 @@
 #include <iostream>
 #include <mutex>
 #include <unordered_set>
-#include <evntrace.h>
-#include <evntcons.h>
+#include <utility>
+#ifdef _WIN32
+#    include <evntrace.h>
+#    include <evntcons.h>
+#endif
 
-#pragma comment(lib, "advapi32.lib")
+#ifdef _WIN32
+#    pragma comment(lib, "advapi32.lib")
+#endif
 
 namespace std {
     template<>
@@ -17,6 +22,8 @@ namespace std {
 }
 
 namespace winuzzf {
+
+#ifdef _WIN32
 
 class CoverageCollector::Impl {
 public:
@@ -365,13 +372,121 @@ CoverageInfo IntelPTCoverageCollector::GetCoverageInfo() const {
     return pImpl->GetCoverageInfo();
 }
 
+#else // _WIN32
+
+class CoverageCollector::Impl {
+public:
+    Impl() : enabled_(false), type_(CoverageType::None) {}
+
+    void Initialize(std::shared_ptr<Target> target) {
+        target_ = std::move(target);
+    }
+
+    void Enable(CoverageType type) {
+        type_ = type;
+        enabled_ = type != CoverageType::None;
+    }
+
+    void Disable() {
+        enabled_ = false;
+        type_ = CoverageType::None;
+    }
+
+    bool IsEnabled() const { return enabled_; }
+
+    void StartCollection() {}
+    void StopCollection() {}
+
+    CoverageInfo GetCoverageInfo() const {
+        return CoverageInfo{};
+    }
+
+    void ResetCoverage() {}
+
+private:
+    bool enabled_;
+    CoverageType type_;
+    std::shared_ptr<Target> target_;
+};
+
+class ETWCoverageCollector::Impl {};
+class IntelPTCoverageCollector::Impl {};
+
+CoverageCollector::CoverageCollector() : pImpl(std::make_unique<Impl>()) {}
+CoverageCollector::~CoverageCollector() = default;
+
+void CoverageCollector::Initialize(std::shared_ptr<Target> target) {
+    pImpl->Initialize(std::move(target));
+}
+
+void CoverageCollector::Enable(CoverageType type) {
+    pImpl->Enable(type);
+}
+
+void CoverageCollector::Disable() {
+    pImpl->Disable();
+}
+
+bool CoverageCollector::IsEnabled() const {
+    return pImpl->IsEnabled();
+}
+
+void CoverageCollector::StartCollection() {
+    pImpl->StartCollection();
+}
+
+void CoverageCollector::StopCollection() {
+    pImpl->StopCollection();
+}
+
+CoverageInfo CoverageCollector::GetCoverageInfo() const {
+    return pImpl->GetCoverageInfo();
+}
+
+void CoverageCollector::ResetCoverage() {
+    pImpl->ResetCoverage();
+}
+
+ETWCoverageCollector::ETWCoverageCollector()
+    : pImpl(std::make_unique<Impl>()) {}
+ETWCoverageCollector::~ETWCoverageCollector() = default;
+
+bool ETWCoverageCollector::StartSession(const std::string&) {
+    return false;
+}
+
+void ETWCoverageCollector::StopSession() {}
+
+void ETWCoverageCollector::EnableProvider(const GUID&) {}
+
+CoverageInfo ETWCoverageCollector::GetCoverageInfo() const {
+    return CoverageInfo{};
+}
+
+IntelPTCoverageCollector::IntelPTCoverageCollector()
+    : pImpl(std::make_unique<Impl>()) {}
+IntelPTCoverageCollector::~IntelPTCoverageCollector() = default;
+
+bool IntelPTCoverageCollector::Initialize() {
+    return false;
+}
+
+void IntelPTCoverageCollector::StartTracing(DWORD) {}
+
+void IntelPTCoverageCollector::StopTracing() {}
+
+CoverageInfo IntelPTCoverageCollector::GetCoverageInfo() const {
+    return CoverageInfo{};
+}
+
+#endif // _WIN32
+
 // Breakpoint Coverage Collector Implementation
 BreakpointCoverageCollector::BreakpointCoverageCollector() {}
 BreakpointCoverageCollector::~BreakpointCoverageCollector() = default;
 
 void BreakpointCoverageCollector::SetTarget(std::shared_ptr<Target> target) {
-    // In a real implementation, you would analyze the target binary
-    // and set breakpoints on interesting locations (function entries, basic block starts, etc.)
+    (void)target;
 }
 
 void BreakpointCoverageCollector::AddBreakpoint(uint64_t address) {
@@ -386,17 +501,17 @@ void BreakpointCoverageCollector::RemoveBreakpoint(uint64_t address) {
 
 CoverageInfo BreakpointCoverageCollector::GetCoverageInfo() const {
     std::lock_guard<std::mutex> lock(mutex_);
-    
+
     CoverageInfo info{};
     info.basic_blocks_hit = hit_addresses_.size();
     info.edges_hit = 0;
     info.new_coverage = 0;
     info.hit_addresses = std::vector<uint64_t>(hit_addresses_.begin(), hit_addresses_.end());
-    
+
     if (!breakpoints_.empty()) {
         info.coverage_percentage = static_cast<double>(hit_addresses_.size()) / breakpoints_.size() * 100.0;
     }
-    
+
     return info;
 }
 

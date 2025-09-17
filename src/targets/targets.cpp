@@ -1,17 +1,25 @@
 #include "winuzzf.h"
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #include <memory>
 #include <functional>
 #include <vector>
 #include <string>
 #include <stdexcept>
 #include <fstream>
+#include <sstream>
+#include <filesystem>
+#include <utility>
 
-#pragma comment(lib, "ws2_32.lib")
+#ifdef _WIN32
+#    include <windows.h>
+#    include <winsock2.h>
+#    include <ws2tcpip.h>
+
+#    pragma comment(lib, "ws2_32.lib")
+#endif
 
 namespace winuzzf {
+
+#ifdef _WIN32
 
 // API Target Implementation
 class APITarget::Impl {
@@ -708,5 +716,324 @@ void NetworkTarget::SetProtocol(const std::string& protocol) {
 void NetworkTarget::SetTimeout(uint32_t timeout_ms) {
     // Placeholder implementation
 }
+
+#else // _WIN32
+
+namespace {
+Architecture DetectHostArchitecture() {
+    return sizeof(void*) == 8 ? Architecture::x64 : Architecture::x86;
+}
+}
+
+class APITarget::Impl {
+public:
+    Impl(std::string module, std::string function)
+        : module_name_(std::move(module)), function_name_(std::move(function)) {}
+
+    void Setup() {
+        throw std::runtime_error("APITarget is only supported on Windows builds.");
+    }
+
+    void Cleanup() {}
+
+    FuzzResult Execute(const std::vector<uint8_t>&) {
+        return FuzzResult::Error;
+    }
+
+    void SetParameterTemplate(const std::vector<uint32_t>&) {}
+
+    void SetReturnValueCheck(std::function<bool(DWORD)>) {}
+
+    std::string GetName() const {
+        return module_name_ + "::" + function_name_;
+    }
+
+private:
+    std::string module_name_;
+    std::string function_name_;
+};
+
+APITarget::APITarget(const std::string& module, const std::string& function)
+    : pImpl(std::make_unique<Impl>(module, function)) {}
+
+APITarget::~APITarget() = default;
+
+FuzzResult APITarget::Execute(const std::vector<uint8_t>& input) {
+    return pImpl->Execute(input);
+}
+
+void APITarget::Setup() {
+    pImpl->Setup();
+}
+
+void APITarget::Cleanup() {
+    pImpl->Cleanup();
+}
+
+std::string APITarget::GetName() const {
+    return pImpl->GetName();
+}
+
+Architecture APITarget::GetArchitecture() const {
+    return DetectHostArchitecture();
+}
+
+void APITarget::SetParameterTemplate(const std::vector<uint32_t>& param_sizes) {
+    pImpl->SetParameterTemplate(param_sizes);
+}
+
+void APITarget::SetReturnValueCheck(std::function<bool(DWORD)> checker) {
+    pImpl->SetReturnValueCheck(std::move(checker));
+}
+
+class DriverTarget::Impl {
+public:
+    explicit Impl(std::string device) : device_name_(std::move(device)), ioctl_code_(0) {}
+
+    void Setup() {
+        throw std::runtime_error("DriverTarget is only supported on Windows builds.");
+    }
+
+    void Cleanup() {}
+
+    FuzzResult Execute(const std::vector<uint8_t>&) {
+        return FuzzResult::Error;
+    }
+
+    void SetIoctlCode(uint32_t code) { ioctl_code_ = code; }
+    void SetInputMethod(bool) {}
+    void SetOutputBuffer(size_t) {}
+
+    std::string GetName() const {
+        std::ostringstream oss;
+        oss << device_name_ << " (IOCTL: 0x" << std::hex << ioctl_code_ << ')';
+        return oss.str();
+    }
+
+private:
+    std::string device_name_;
+    uint32_t ioctl_code_;
+};
+
+DriverTarget::DriverTarget(const std::string& device_name)
+    : pImpl(std::make_unique<Impl>(device_name)) {}
+
+DriverTarget::~DriverTarget() = default;
+
+FuzzResult DriverTarget::Execute(const std::vector<uint8_t>& input) {
+    return pImpl->Execute(input);
+}
+
+void DriverTarget::Setup() {
+    pImpl->Setup();
+}
+
+void DriverTarget::Cleanup() {
+    pImpl->Cleanup();
+}
+
+std::string DriverTarget::GetName() const {
+    return pImpl->GetName();
+}
+
+Architecture DriverTarget::GetArchitecture() const {
+    return DetectHostArchitecture();
+}
+
+void DriverTarget::SetIoctlCode(uint32_t ioctl_code) {
+    pImpl->SetIoctlCode(ioctl_code);
+}
+
+void DriverTarget::SetInputMethod(bool use_input_buffer) {
+    pImpl->SetInputMethod(use_input_buffer);
+}
+
+void DriverTarget::SetOutputBuffer(size_t size) {
+    pImpl->SetOutputBuffer(size);
+}
+
+class ExecutableTarget::Impl {
+public:
+    explicit Impl(std::string path) : exe_path_(std::move(path)) {}
+
+    void Setup() {
+        if (!std::filesystem::exists(exe_path_)) {
+            throw std::runtime_error("Executable not found: " + exe_path_);
+        }
+    }
+
+    void Cleanup() {}
+
+    FuzzResult Execute(const std::vector<uint8_t>&) {
+        throw std::runtime_error("Executable fuzzing is only supported on Windows builds.");
+    }
+
+    void SetCommandLineTemplate(const std::string& template_str) { cmdline_template_ = template_str; }
+    void SetInputMethod(const std::string& method) { input_method_ = method; }
+    void SetWorkingDirectory(const std::string& dir) { working_dir_ = dir; }
+
+    std::string GetName() const { return exe_path_; }
+
+private:
+    std::string exe_path_;
+    std::string cmdline_template_;
+    std::string input_method_ = "stdin";
+    std::string working_dir_ = ".";
+};
+
+ExecutableTarget::ExecutableTarget(const std::string& exe_path)
+    : pImpl(std::make_unique<Impl>(exe_path)) {}
+
+ExecutableTarget::~ExecutableTarget() = default;
+
+FuzzResult ExecutableTarget::Execute(const std::vector<uint8_t>& input) {
+    return pImpl->Execute(input);
+}
+
+void ExecutableTarget::Setup() {
+    pImpl->Setup();
+}
+
+void ExecutableTarget::Cleanup() {
+    pImpl->Cleanup();
+}
+
+std::string ExecutableTarget::GetName() const {
+    return pImpl->GetName();
+}
+
+Architecture ExecutableTarget::GetArchitecture() const {
+    return DetectHostArchitecture();
+}
+
+void ExecutableTarget::SetCommandLineTemplate(const std::string& template_str) {
+    pImpl->SetCommandLineTemplate(template_str);
+}
+
+void ExecutableTarget::SetInputMethod(const std::string& method) {
+    pImpl->SetInputMethod(method);
+}
+
+void ExecutableTarget::SetWorkingDirectory(const std::string& dir) {
+    pImpl->SetWorkingDirectory(dir);
+}
+
+class DLLTarget::Impl {
+public:
+    Impl(std::string dll, std::string function)
+        : dll_path_(std::move(dll)), function_name_(std::move(function)) {}
+
+    void Setup() {
+        throw std::runtime_error("DLLTarget is only supported on Windows builds.");
+    }
+
+    void Cleanup() {}
+
+    FuzzResult Execute(const std::vector<uint8_t>&) {
+        return FuzzResult::Error;
+    }
+
+    std::string GetName() const { return dll_path_ + "::" + function_name_; }
+
+    void SetParameterTemplate(const std::vector<uint32_t>&) {}
+    void SetCallingConvention(const std::string&) {}
+
+private:
+    std::string dll_path_;
+    std::string function_name_;
+};
+
+DLLTarget::DLLTarget(const std::string& dll_path, const std::string& function_name)
+    : pImpl(std::make_unique<Impl>(dll_path, function_name)) {}
+
+DLLTarget::~DLLTarget() = default;
+
+FuzzResult DLLTarget::Execute(const std::vector<uint8_t>& input) {
+    return pImpl->Execute(input);
+}
+
+void DLLTarget::Setup() {
+    pImpl->Setup();
+}
+
+void DLLTarget::Cleanup() {
+    pImpl->Cleanup();
+}
+
+std::string DLLTarget::GetName() const {
+    return pImpl->GetName();
+}
+
+Architecture DLLTarget::GetArchitecture() const {
+    return DetectHostArchitecture();
+}
+
+void DLLTarget::SetParameterTemplate(const std::vector<uint32_t>& param_sizes) {
+    pImpl->SetParameterTemplate(param_sizes);
+}
+
+void DLLTarget::SetCallingConvention(const std::string& convention) {
+    pImpl->SetCallingConvention(convention);
+}
+
+class NetworkTarget::Impl {
+public:
+    explicit Impl(std::string address_port) : address_port_(std::move(address_port)) {}
+
+    void Setup() {
+        throw std::runtime_error("NetworkTarget is only supported on Windows builds.");
+    }
+
+    void Cleanup() {}
+
+    FuzzResult Execute(const std::vector<uint8_t>&) {
+        return FuzzResult::Error;
+    }
+
+    std::string GetName() const { return "network://" + address_port_; }
+
+    void SetProtocol(const std::string& protocol) { protocol_ = protocol; }
+    void SetTimeout(uint32_t timeout_ms) { timeout_ms_ = timeout_ms; }
+
+private:
+    std::string address_port_;
+    std::string protocol_ = "tcp";
+    uint32_t timeout_ms_ = 0;
+};
+
+NetworkTarget::NetworkTarget(const std::string& address_port)
+    : pImpl(std::make_unique<Impl>(address_port)) {}
+
+NetworkTarget::~NetworkTarget() = default;
+
+FuzzResult NetworkTarget::Execute(const std::vector<uint8_t>& input) {
+    return pImpl->Execute(input);
+}
+
+void NetworkTarget::Setup() {
+    pImpl->Setup();
+}
+
+void NetworkTarget::Cleanup() {
+    pImpl->Cleanup();
+}
+
+std::string NetworkTarget::GetName() const {
+    return pImpl->GetName();
+}
+
+Architecture NetworkTarget::GetArchitecture() const {
+    return DetectHostArchitecture();
+}
+
+void NetworkTarget::SetProtocol(const std::string& protocol) {
+    pImpl->SetProtocol(protocol);
+}
+
+void NetworkTarget::SetTimeout(uint32_t timeout_ms) {
+    pImpl->SetTimeout(timeout_ms);
+}
+
+#endif // _WIN32
 
 } // namespace winuzzf

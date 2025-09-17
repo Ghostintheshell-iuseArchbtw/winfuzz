@@ -5,7 +5,46 @@
 #include <vector>
 #include <functional>
 #include <cstdint>
-#include <windows.h>
+
+#ifdef _WIN32
+#    include <windows.h>
+#else
+#    include <cstddef>
+
+using HANDLE = void*;
+using DWORD = std::uint32_t;
+using SIZE_T = std::size_t;
+using HMODULE = void*;
+using FARPROC = void (*)();
+using BOOL = int;
+using BYTE = unsigned char;
+using WORD = std::uint16_t;
+using LONG = long;
+using PVOID = void*;
+using ULONG = unsigned long;
+using ULONGLONG = unsigned long long;
+using TRACEHANDLE = std::uint64_t;
+
+struct CONTEXT {
+    std::uint64_t Rip = 0;
+    std::uint64_t Rsp = 0;
+};
+
+struct EXCEPTION_POINTERS;
+using PEXCEPTION_POINTERS = EXCEPTION_POINTERS*;
+using LPTOP_LEVEL_EXCEPTION_FILTER = LONG (*)(PEXCEPTION_POINTERS);
+
+constexpr HANDLE INVALID_HANDLE_VALUE = nullptr;
+constexpr DWORD STILL_ACTIVE = 259;
+
+#    ifndef WINAPI
+#        define WINAPI
+#    endif
+
+#    ifndef MAX_PATH
+#        define MAX_PATH 260
+#    endif
+#endif
 
 namespace winuzzf {
 

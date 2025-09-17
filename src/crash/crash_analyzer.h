@@ -1,11 +1,13 @@
 #pragma once
 
 #include "winuzzf.h"
-#include <windows.h>
 #include <memory>
 #include <string>
 #include <vector>
 #include <mutex>
+#ifdef _WIN32
+#    include <windows.h>
+#endif
 
 namespace winuzzf {
 

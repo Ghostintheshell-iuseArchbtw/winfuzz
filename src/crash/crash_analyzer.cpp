@@ -1,21 +1,25 @@
 #include "crash_analyzer.h"
-#include <dbghelp.h>
-#include <psapi.h>
-#include <iostream>
-#include <sstream>
 #include <iomanip>
+#include <iostream>
 #include <mutex>
+#include <sstream>
+#ifdef _WIN32
+#    include <dbghelp.h>
+#    include <psapi.h>
+#    pragma comment(lib, "dbghelp.lib")
+#    pragma comment(lib, "psapi.lib")
+#else
+#    include <stdexcept>
+#endif
 
 // Define EXCEPTION_HEAP_CORRUPTION if not available
 #ifndef EXCEPTION_HEAP_CORRUPTION
 #define EXCEPTION_HEAP_CORRUPTION 0xC0000374
 #endif
 
-#pragma comment(lib, "dbghelp.lib")
-#pragma comment(lib, "psapi.lib")
-
 namespace winuzzf {
 
+#ifdef _WIN32
 class CrashAnalyzer::Impl {
 public:
     Impl() : target_process_(nullptr) {
@@ -310,13 +314,78 @@ std::string CrashDumpAnalyzer::GetFunctionNameFromAddress(HANDLE process, uint64
     PSYMBOL_INFO symbol = reinterpret_cast<PSYMBOL_INFO>(buffer);
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
     symbol->MaxNameLen = MAX_SYM_NAME;
-    
+
     DWORD64 displacement = 0;
     if (SymFromAddr(process, address, &displacement, symbol)) {
         return std::string(symbol->Name);
     }
-    
+
     return "unknown";
 }
+
+#else // _WIN32
+
+class CrashAnalyzer::Impl {};
+
+CrashAnalyzer::CrashAnalyzer()
+    : pImpl(std::make_unique<Impl>()) {}
+CrashAnalyzer::~CrashAnalyzer() = default;
+
+CrashInfo CrashAnalyzer::AnalyzeCrash(const std::vector<uint8_t>& input_data) {
+    CrashInfo info{};
+    info.input_data = input_data;
+    info.exploitable = false;
+    return info;
+}
+
+void CrashAnalyzer::SetTargetProcess(HANDLE) {}
+
+std::string CrashAnalyzer::GenerateCrashHash(const CrashInfo&) {
+    return "unsupported";
+}
+
+bool CrashAnalyzer::IsExploitable(const CrashInfo&) {
+    return false;
+}
+
+ExceptionHandler::ExceptionHandler() = default;
+ExceptionHandler::~ExceptionHandler() = default;
+
+void ExceptionHandler::Install() {}
+void ExceptionHandler::Uninstall() {}
+
+LONG WINAPI ExceptionHandler::VectoredExceptionHandler(PEXCEPTION_POINTERS) {
+    return 0;
+}
+
+CrashInfo* ExceptionHandler::GetLastCrashInfo() {
+    return nullptr;
+}
+
+CrashInfo ExceptionHandler::last_crash_info_{};
+std::mutex ExceptionHandler::crash_mutex_;
+PVOID ExceptionHandler::handler_handle_ = nullptr;
+
+CrashInfo CrashDumpAnalyzer::AnalyzeDumpFile(const std::string&) {
+    throw std::runtime_error("Crash dump analysis is only supported on Windows builds.");
+}
+
+void CrashDumpAnalyzer::CreateMiniDump(DWORD, const std::string&) {
+    throw std::runtime_error("Crash dump creation is only supported on Windows builds.");
+}
+
+std::vector<uint64_t> CrashDumpAnalyzer::GetCallStack(HANDLE, HANDLE, CONTEXT*) {
+    return {};
+}
+
+std::string CrashDumpAnalyzer::GetModuleNameFromAddress(HANDLE, uint64_t) {
+    return "unknown";
+}
+
+std::string CrashDumpAnalyzer::GetFunctionNameFromAddress(HANDLE, uint64_t) {
+    return "unknown";
+}
+
+#endif // _WIN32
 
 } // namespace winuzzf

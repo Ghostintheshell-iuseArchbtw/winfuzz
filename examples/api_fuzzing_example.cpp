@@ -1,14 +1,20 @@
 #include "winuzzf.h"
-#include <iostream>
-#include <windows.h>
-#include <thread>
 #include <chrono>
+#include <iostream>
+#include <thread>
+#ifdef _WIN32
+#    include <windows.h>
+#endif
 
 using namespace winuzzf;
 
 int main() {
+#ifndef _WIN32
+    std::cout << "WinFuzz API example is only available on Windows." << std::endl;
+    return 0;
+#else
     std::cout << "WinFuzz API Fuzzing Example - CreateFileW" << std::endl;
-    
+
     try {
         // Create fuzzer instance
         auto fuzzer = WinFuzzer::Create();
@@ -134,6 +140,7 @@ int main() {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
-    
+
     return 0;
+#endif
 }

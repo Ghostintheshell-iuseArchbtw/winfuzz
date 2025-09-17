@@ -62,6 +62,18 @@ cmake .. -G "Visual Studio 16 2019" -A x64
 cmake --build . --config Release
 ```
 
+### Building on Linux or WSL
+
+While WinFuzz's advanced instrumentation is Windows-focused, the project now builds on Linux and WSL with portable stubs so you can explore the codebase, run unit tests, and use the corpus utilities without a Windows SDK.
+
+```bash
+cmake -S . -B build
+cmake --build build
+ctest --test-dir build
+```
+
+> **Note:** Non-Windows builds provide simplified implementations for Windows-specific functionality (sandboxing, ETW coverage, crash analysis, etc.). These stubs are ideal for development and CI but do not offer real instrumentation on Linux.
+
 ## Quick Start
 
 ### Basic API Fuzzing Example

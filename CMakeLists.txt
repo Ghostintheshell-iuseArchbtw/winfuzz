@@ -9,11 +9,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# Platform checks
-if(NOT WIN32)
-    message(FATAL_ERROR "This project is designed for Windows only")
-endif()
-
 # Compiler flags
 if(MSVC)
     add_compile_options(/W4 /permissive- /Zc:__cplusplus)
@@ -65,17 +60,19 @@ target_link_libraries(winuzzf
 )
 
 # Link Windows libraries
-target_link_libraries(winuzzf
-    kernel32
-    user32
-    advapi32
-    dbghelp
-    psapi
-    ntdll
-    wintrust
-    crypt32
-    bcrypt
-)
+if(WIN32)
+    target_link_libraries(winuzzf
+        kernel32
+        user32
+        advapi32
+        dbghelp
+        psapi
+        ntdll
+        wintrust
+        crypt32
+        bcrypt
+    )
+endif()
 
 # Install targets
 install(TARGETS winuzzf DESTINATION bin)

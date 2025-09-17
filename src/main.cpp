@@ -242,6 +242,7 @@ int main(int argc, char* argv[]) {
             
             // Set up common API parameter templates
             if (config.target_param2 == "CreateFileW") {
+#ifdef _WIN32
                 api_target->SetParameterTemplate({
                     sizeof(LPCWSTR),    // lpFileName
                     sizeof(DWORD),      // dwDesiredAccess
@@ -251,6 +252,17 @@ int main(int argc, char* argv[]) {
                     sizeof(DWORD),      // dwFlagsAndAttributes
                     sizeof(HANDLE)      // hTemplateFile
                 });
+#else
+                api_target->SetParameterTemplate({
+                    sizeof(uintptr_t),
+                    sizeof(uint32_t),
+                    sizeof(uint32_t),
+                    sizeof(uintptr_t),
+                    sizeof(uint32_t),
+                    sizeof(uint32_t),
+                    sizeof(uintptr_t)
+                });
+#endif
             }
             
             target = api_target;
